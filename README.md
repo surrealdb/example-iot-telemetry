@@ -16,6 +16,15 @@ language: sql
 
 <!-- end_slide -->
 
+Table pre-computed view
+===
+
+```file +line_numbers
+path: surql/table_view.surql
+language: sql
+```
+<!-- end_slide -->
+
 Sample queries
 ===
 
