@@ -1,13 +1,15 @@
 use crate::{
     Args,
     event::{AppEvent, Event, EventHandler},
+    queries::{SensorData, queries_run},
     sensors::sensors_run,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::DefaultTerminal;
 use std::{
+    collections::HashMap,
     sync::{
-        Arc,
+        Arc, RwLock,
         atomic::{AtomicBool, Ordering},
     },
     thread,
@@ -18,15 +20,13 @@ use surrealdb::opt::auth::Root;
 use tokio::sync::Mutex;
 
 /// Application.
-#[derive(Debug)]
 pub struct App {
     pub threads: usize,
     delay: u64,
-    /// Is the application running?
+    db: Option<Arc<Mutex<Surreal<Client>>>>,
+    pub sensors: Arc<RwLock<SensorData>>,
     pub running: Arc<AtomicBool>,
-    /// Counter.
     pub counter: u8,
-    /// Event handler.
     pub events: EventHandler,
 }
 
@@ -34,6 +34,8 @@ impl App {
     /// Constructs a new instance of [`App`].
     pub fn new(args: Args) -> Self {
         Self {
+            db: None,
+            sensors: Arc::new(RwLock::new(HashMap::new())),
             threads: args.threads,
             delay: args.delay,
             running: Arc::new(AtomicBool::new(true)),
@@ -52,11 +54,20 @@ impl App {
         .await?;
         db.use_ns("telemetry-simulator").use_db("demo").await?;
         let db_ref: Arc<Mutex<Surreal<Client>>> = Arc::new(Mutex::new(db));
+        let db_clone_2 = db_ref.clone();
+        self.db = Some(Arc::clone(&db_ref));
 
         // spawn sensors
         let running_clone = self.running.clone();
         thread::spawn(move || {
             sensors_run(self.threads, self.delay, running_clone, db_ref);
+        });
+
+        // spawn queries
+        let running_clone_2 = self.running.clone();
+        let sensors_clone = Arc::clone(&self.sensors);
+        thread::spawn(move || {
+            queries_run(db_clone_2, running_clone_2, sensors_clone);
         });
 
         while self.running.load(Ordering::Relaxed) {

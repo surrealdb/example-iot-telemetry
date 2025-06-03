@@ -4,6 +4,7 @@ use crate::app::App;
 
 mod app;
 mod event;
+mod queries;
 mod readings;
 mod sensors;
 mod ui;

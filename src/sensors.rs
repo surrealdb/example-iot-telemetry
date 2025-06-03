@@ -20,9 +20,6 @@ pub fn sensors_run(
     db: Arc<Mutex<Surreal<Client>>>,
 ) -> () {
     let mut handles = vec![];
-
-    // println!("Starting {} threads to generate Perlin noise...", threads);
-
     for i in 0..threads {
         let rt = Runtime::new().unwrap();
         let db_clone = Arc::clone(&db);
@@ -37,13 +34,11 @@ pub fn sensors_run(
             thread::sleep(Duration::from_millis(
                 (delay as f64 * rand::rng().random_range(0.0..1.)) as u64,
             ));
-            // println!("Thread {} started.", i);
 
             while running_clone.load(Ordering::Relaxed) {
                 let noise_value = get_reading(&perlin);
                 let last_min_avg = keep_window(&mut recent_values, noise_value);
 
-                // println!("Thread {}: Perlin Noise value = {:.4}", i, noise_value);
                 rt.block_on(async {
                     store_reading(
                         &db_clone,
