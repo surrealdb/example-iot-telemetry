@@ -3,10 +3,8 @@ use crate::{
     event::{AppEvent, Event, EventHandler},
     sensors::sensors_run,
 };
-use ratatui::{
-    DefaultTerminal,
-    crossterm::event::{KeyCode, KeyEvent, KeyModifiers},
-};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use ratatui::DefaultTerminal;
 use std::{
     sync::{
         Arc,
@@ -65,10 +63,12 @@ impl App {
             terminal.draw(|frame| frame.render_widget(&self, frame.area()))?;
             match self.events.next().await? {
                 Event::Tick => self.tick(),
-                Event::Crossterm(event) => match event {
-                    crossterm::event::Event::Key(key_event) => self.handle_key_events(key_event)?,
-                    _ => {}
-                },
+                Event::Crossterm(event) => {
+                    let Some(key_event) = event.as_key_press_event() else {
+                        continue;
+                    };
+                    self.handle_key_events(key_event)?
+                }
                 Event::App(app_event) => match app_event {
                     AppEvent::Increment => self.increment_counter(),
                     AppEvent::Decrement => self.decrement_counter(),
