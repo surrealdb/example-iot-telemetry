@@ -3,17 +3,18 @@ use std::sync::Arc;
 use noise::{NoiseFn, Perlin};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use surrealdb::Surreal;
 use surrealdb::engine::remote::ws::Client;
+use surrealdb::{RecordId, Surreal};
 use tokio::sync::Mutex;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Reading {
+    pub sensor: RecordId,
     pub value: f64,
     pub last_min_avg: f64,
 }
 
-pub async fn store_reading(db: &Arc<Mutex<Surreal<Client>>>, sensor: &str, reading: Reading) -> () {
+pub async fn store_reading(db: &Arc<Mutex<Surreal<Client>>>, reading: Reading) -> () {
     let db = db.lock().await;
     let query = r#"
         CREATE reading:[
@@ -26,7 +27,10 @@ pub async fn store_reading(db: &Arc<Mutex<Surreal<Client>>>, sensor: &str, readi
     "#;
     let res = db
         .query(query)
-        .bind(("sensor", sensor.to_string()))
+        .bind((
+            "sensor",
+            reading.sensor, // RecordId::from_table_key("sensor", reading.sensor.to_string()),
+        ))
         .bind(("value", reading.value))
         .bind(("last_min_avg", reading.last_min_avg))
         .await;

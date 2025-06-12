@@ -14,18 +14,23 @@ THEN {
         RETURN math::percentile($temp_past_hour, 75) + 1.5 * math::interquartile($temp_past_hour)
     );
 
+    DEFINE PARAM OVERWRITE $message VALUE None;
+
     -- tip: you can also call http::post
     IF $after.value < $low_outliers {
-        create alert content {
-            outlier: $after,
-            message: 'Outlier Detected: low'
-        }
+        DEFINE PARAM OVERWRITE $message VALUE 'Outlier Detected: low'
     };
 
     IF $after.value > $high_outliers {
-        create alert content {
-            outlier: $after,
-            message: 'Outlier Detected: high'
-        }
+        DEFINE PARAM OVERWRITE $message VALUE 'Outlier Detected: high'
     };
+
+    IF $message {
+        LET $alert = CREATE alert CONTENT {
+            outlier: $after,
+            message: $message
+        } RETURN id;
+
+        RELATE ($after.sensor)->created_alert->$alert;
+    }
 };

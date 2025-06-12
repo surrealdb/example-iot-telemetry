@@ -9,13 +9,13 @@ use std::{
 };
 
 use serde::Deserialize;
-use surrealdb::{Surreal, engine::remote::ws::Client};
+use surrealdb::{RecordId, Surreal, engine::remote::ws::Client};
 use tokio::{runtime::Runtime, sync::Mutex};
 
 #[derive(Deserialize)]
 pub struct SensorWindow {
     // id: RecordId,
-    pub sensor: String,
+    pub sensor: RecordId,
     pub values: Vec<f64>,
 }
 
@@ -51,7 +51,7 @@ group by sensor"#,
             {
                 let mut values = values.write().unwrap();
                 for win in _values {
-                    values.insert(win.sensor.clone(), win);
+                    values.insert(win.sensor.key().to_string(), win);
                 }
             }
         });

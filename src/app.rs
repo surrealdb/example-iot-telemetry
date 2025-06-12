@@ -60,7 +60,7 @@ impl App {
         // spawn sensors
         let running_clone = self.running.clone();
         thread::spawn(move || {
-            sensors_run(self.threads, self.delay, running_clone, db_ref);
+            let _ = sensors_run(self.threads, self.delay, running_clone, db_ref);
         });
 
         // spawn queries
