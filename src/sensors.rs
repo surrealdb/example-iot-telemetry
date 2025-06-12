@@ -33,19 +33,24 @@ async fn insert_sensor(
 }
 
 pub fn sensors_run(
-    threads: usize,
+    sensor_count: usize,
     delay: u64,
     running: Arc<AtomicBool>,
     db: Arc<Mutex<Surreal<Client>>>,
 ) -> Result<(), ErrorKind> {
     let mut handles = vec![];
 
-    for i in 0..threads {
+    for i in 0..sensor_count {
         let rt = Runtime::new().unwrap();
 
         // add sensor to DB
         let sensor_name = format!("sensor-{}", i);
-        let sensor = rt.block_on(async { insert_sensor(&db, &sensor_name).await })?;
+        let sensor_id = rt.block_on(async {
+            match insert_sensor(&db, &sensor_name).await {
+                Ok(s) => s.id,
+                Err(_) => RecordId::from_table_key("sensor", sensor_name),
+            }
+        });
 
         let db_clone = Arc::clone(&db);
         let running_clone = running.clone();
@@ -69,7 +74,7 @@ pub fn sensors_run(
                         Reading {
                             value: noise_value,
                             last_min_avg,
-                            sensor: sensor.id.clone(),
+                            sensor: sensor_id.clone(),
                         },
                     )
                     .await;

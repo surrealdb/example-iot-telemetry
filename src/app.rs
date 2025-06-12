@@ -21,12 +21,12 @@ use tokio::sync::Mutex;
 
 /// Application.
 pub struct App {
-    pub threads: usize,
+    pub sensor_count: usize,
     delay: u64,
     db: Option<Arc<Mutex<Surreal<Client>>>>,
     pub sensors: Arc<RwLock<SensorData>>,
     pub running: Arc<AtomicBool>,
-    pub counter: u8,
+    pub selected_sensor: usize,
     pub events: EventHandler,
 }
 
@@ -36,10 +36,10 @@ impl App {
         Self {
             db: None,
             sensors: Arc::new(RwLock::new(HashMap::new())),
-            threads: args.threads,
+            sensor_count: args.count,
             delay: args.delay,
             running: Arc::new(AtomicBool::new(true)),
-            counter: 0,
+            selected_sensor: 0,
             events: EventHandler::new(),
         }
     }
@@ -60,7 +60,7 @@ impl App {
         // spawn sensors
         let running_clone = self.running.clone();
         thread::spawn(move || {
-            let _ = sensors_run(self.threads, self.delay, running_clone, db_ref);
+            let _ = sensors_run(self.sensor_count, self.delay, running_clone, db_ref);
         });
 
         // spawn queries
@@ -98,8 +98,8 @@ impl App {
             KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => {
                 self.events.send(AppEvent::Quit)
             }
-            KeyCode::Right => self.events.send(AppEvent::Increment),
-            KeyCode::Left => self.events.send(AppEvent::Decrement),
+            KeyCode::Down => self.events.send(AppEvent::Increment),
+            KeyCode::Up => self.events.send(AppEvent::Decrement),
             // Other handlers you could add here.
             _ => {}
         }
@@ -114,15 +114,18 @@ impl App {
 
     /// Set running to false to quit the application.
     pub fn quit(&mut self) {
-        // self.running = false;
         self.running.store(false, Ordering::Relaxed);
     }
 
     pub fn increment_counter(&mut self) {
-        self.counter = self.counter.saturating_add(1);
+        self.selected_sensor = self.selected_sensor.saturating_add(1) % self.sensor_count;
     }
 
     pub fn decrement_counter(&mut self) {
-        self.counter = self.counter.saturating_sub(1);
+        if self.selected_sensor == 0 {
+            self.selected_sensor = self.sensor_count - 1;
+        } else {
+            self.selected_sensor -= 1;
+        }
     }
 }

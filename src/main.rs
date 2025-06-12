@@ -14,9 +14,9 @@ mod utils;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 pub struct Args {
-    /// Number of concurrent threads
+    /// Number of concurrent sensor_count
     #[clap(short, long, default_value = "4")]
-    threads: usize,
+    count: usize,
 
     /// Delay between each print in milliseconds
     #[clap(short, long, default_value = "1000")]
