@@ -4,7 +4,7 @@ use serde::Deserialize;
 use std::collections::VecDeque;
 use std::io::ErrorKind;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicIsize, Ordering};
 use std::time::Instant;
 use std::{thread, time::Duration};
 use surrealdb::engine::remote::ws::Client;
@@ -36,6 +36,7 @@ pub fn sensors_run(
     sensor_count: usize,
     delay: u64,
     running: Arc<AtomicBool>,
+    force_outlier_on_sensor: Arc<AtomicIsize>,
     db: Arc<Mutex<Surreal<Client>>>,
 ) -> Result<(), ErrorKind> {
     let mut handles = vec![];
@@ -53,6 +54,7 @@ pub fn sensors_run(
         });
 
         let db_clone = Arc::clone(&db);
+        let force_outlier_on_sensor_clone = force_outlier_on_sensor.clone();
         let running_clone = running.clone();
         let handle = thread::spawn(move || {
             let perlin = Perlin::default(); // Initialize Perlin with a random seed
@@ -65,7 +67,13 @@ pub fn sensors_run(
             ));
 
             while running_clone.load(Ordering::Relaxed) {
-                let noise_value = get_reading(&perlin);
+                let noise_value =
+                    if force_outlier_on_sensor_clone.load(Ordering::Relaxed) == i as isize {
+                        force_outlier_on_sensor_clone.store(-1, Ordering::Relaxed);
+                        1.
+                    } else {
+                        get_reading(&perlin)
+                    };
                 let last_min_avg = keep_window(&mut recent_values, noise_value);
 
                 rt.block_on(async {

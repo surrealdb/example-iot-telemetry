@@ -35,6 +35,8 @@ pub enum AppEvent {
     Increment,
     /// Decrement the counter.
     Decrement,
+    /// Force an outlier on the selectet sensor.
+    ForceOutlier,
     /// Quit the application.
     Quit,
 }

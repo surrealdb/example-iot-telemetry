@@ -9,13 +9,13 @@ use std::{
 };
 
 use serde::Deserialize;
-use surrealdb::{RecordId, Surreal, engine::remote::ws::Client};
+use surrealdb::{Surreal, engine::remote::ws::Client};
 use tokio::{runtime::Runtime, sync::Mutex};
 
 #[derive(Deserialize)]
 pub struct SensorWindow {
     // id: RecordId,
-    pub sensor: RecordId,
+    pub sensor: String,
     pub values: Vec<f64>,
 }
 
@@ -25,6 +25,7 @@ pub fn queries_run(
     db: Arc<Mutex<Surreal<Client>>>,
     running: Arc<AtomicBool>,
     values: Arc<RwLock<SensorData>>,
+    window_in_minutes: Arc<RwLock<u32>>,
 ) -> () {
     let rt = Runtime::new().unwrap();
     while running.load(Ordering::Relaxed) {
@@ -33,13 +34,14 @@ pub fn queries_run(
             {
                 let db = db.lock().await;
                 let res = db
-                    .query(
+                    .query(format!(
                         r#"select
-    sensor,
-    array::group(value) as values
-from reading where id[0] > time::now() - 1m
+    record::id(sensor) as sensor,
+    array::flatten(value) as values
+from reading where id[0] > time::now() - {}m
 group by sensor"#,
-                    )
+                        window_in_minutes.read().unwrap()
+                    ))
                     .await;
                 if let Ok(mut res) = res {
                     let res: surrealdb::Result<Vec<SensorWindow>> = res.take(0);
@@ -51,7 +53,7 @@ group by sensor"#,
             {
                 let mut values = values.write().unwrap();
                 for win in _values {
-                    values.insert(win.sensor.key().to_string(), win);
+                    values.insert(win.sensor.clone(), win);
                 }
             }
         });

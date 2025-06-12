@@ -10,7 +10,7 @@ use std::{
     collections::HashMap,
     sync::{
         Arc, RwLock,
-        atomic::{AtomicBool, Ordering},
+        atomic::{AtomicBool, AtomicIsize, Ordering},
     },
     thread,
 };
@@ -27,7 +27,9 @@ pub struct App {
     pub sensors: Arc<RwLock<SensorData>>,
     pub running: Arc<AtomicBool>,
     pub selected_sensor: usize,
+    pub force_outlier_on_sensor: Arc<AtomicIsize>,
     pub events: EventHandler,
+    pub window_in_minutes: Arc<RwLock<u32>>,
 }
 
 impl App {
@@ -40,7 +42,9 @@ impl App {
             delay: args.delay,
             running: Arc::new(AtomicBool::new(true)),
             selected_sensor: 0,
+            force_outlier_on_sensor: Arc::new(AtomicIsize::new(-1)),
             events: EventHandler::new(),
+            window_in_minutes: Arc::new(RwLock::new(1)),
         }
     }
 
@@ -59,15 +63,23 @@ impl App {
 
         // spawn sensors
         let running_clone = self.running.clone();
+        let force_outlier_on_sensor = self.force_outlier_on_sensor.clone();
         thread::spawn(move || {
-            let _ = sensors_run(self.sensor_count, self.delay, running_clone, db_ref);
+            let _ = sensors_run(
+                self.sensor_count,
+                self.delay,
+                running_clone,
+                force_outlier_on_sensor,
+                db_ref,
+            );
         });
 
         // spawn queries
         let running_clone_2 = self.running.clone();
         let sensors_clone = Arc::clone(&self.sensors);
+        let win_in_min = Arc::clone(&self.window_in_minutes);
         thread::spawn(move || {
-            queries_run(db_clone_2, running_clone_2, sensors_clone);
+            queries_run(db_clone_2, running_clone_2, sensors_clone, win_in_min);
         });
 
         while self.running.load(Ordering::Relaxed) {
@@ -83,6 +95,7 @@ impl App {
                 Event::App(app_event) => match app_event {
                     AppEvent::Increment => self.increment_counter(),
                     AppEvent::Decrement => self.decrement_counter(),
+                    AppEvent::ForceOutlier => self.force_outlier(),
                     AppEvent::Quit => self.quit(),
                 },
             }
@@ -100,7 +113,7 @@ impl App {
             }
             KeyCode::Down => self.events.send(AppEvent::Increment),
             KeyCode::Up => self.events.send(AppEvent::Decrement),
-            // Other handlers you could add here.
+            KeyCode::Char(' ') => self.events.send(AppEvent::ForceOutlier),
             _ => {}
         }
         Ok(())
@@ -127,5 +140,10 @@ impl App {
         } else {
             self.selected_sensor -= 1;
         }
+    }
+
+    pub fn force_outlier(&mut self) {
+        self.force_outlier_on_sensor
+            .store(self.selected_sensor as isize, Ordering::Relaxed);
     }
 }
