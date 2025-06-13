@@ -2,7 +2,7 @@ use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Style, Stylize},
-    widgets::{Block, BorderType, Paragraph, Sparkline, Widget},
+    widgets::{Block, BorderType, Paragraph, Sparkline, Widget, Wrap},
 };
 
 use crate::app::App;
@@ -11,7 +11,7 @@ impl Widget for &App {
     /// Renders the user interface widgets.
     ///
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let main = Layout::horizontal([Constraint::Percentage(50), Constraint::Percentage(50)])
+        let main = Layout::horizontal([Constraint::Percentage(70), Constraint::Percentage(30)])
             .split(area);
 
         let mut constraints = Vec::new();
@@ -70,12 +70,16 @@ impl Widget for &App {
 
         let text = format!(
             "Press `Esc`, `Ctrl-C` or `q` to stop running.\n\
-                Data window in minutes: {}\n\
-                Selected: {}\n\
-                Sensor count: {}",
+                Press `Spacebar` to manually force an outlier.\n\
+                \n\
+                Reading delay: {}ms\n\
+                Query delay: {}ms\n\
+                Data window: {}m\n\
+                Sensor Selected: {}",
+            self.delay,
+            self.query_delay,
             self.window_in_minutes.read().unwrap(),
-            self.selected_sensor,
-            self.sensor_count
+            self.selected_sensor
         );
 
         let mut text2 = String::new();
@@ -89,12 +93,12 @@ impl Widget for &App {
             }
         }
         Paragraph::new(text2)
-            .block(Block::bordered().title(format!(
-                "Last minute averages (query every {}ms)",
-                self.query_delay
-            )))
+            .block(Block::bordered().title(format!("Last minute averages")))
             .render(rcol[0], buf);
 
-        Paragraph::new(text).block(block).render(rcol[1], buf);
+        Paragraph::new(text)
+            .wrap(Wrap { trim: false })
+            .block(block)
+            .render(rcol[1], buf);
     }
 }

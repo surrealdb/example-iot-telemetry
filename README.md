@@ -1,6 +1,6 @@
 ---
 title: Telemetry Demo
-sub_title: SurrealDB, time series, events, table views
+sub_title: SurrealDB, time series, event triggers, graph
 author: Martin Schaer <martin.schaer@surrealdb.com>
 theme:
   name: surreal
@@ -14,17 +14,9 @@ path: surql/sensor_anomaly_alert.surql
 language: sql
 ```
 
-Sample queries
-===
-
-```file +line_numbers
-path: surql/sample_queries.surql
-language: sql
-```
-
 <!-- end_slide -->
 
-Live view and pre-computed tables
+Live Alerts
 ===
 
 ```sql

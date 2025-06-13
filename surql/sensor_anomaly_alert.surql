@@ -1,6 +1,5 @@
 REMOVE EVENT sensor_anomaly_alert ON reading;
 
--- Trigger the event on when a record is created
 DEFINE EVENT sensor_anomaly_alert ON reading WHEN $event = 'CREATE'
 THEN {
     LET $temp_past_hour = SELECT VALUE value FROM reading:[time::now() - 1h]..=[time::now()];

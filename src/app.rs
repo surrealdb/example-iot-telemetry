@@ -22,7 +22,7 @@ use tokio::sync::Mutex;
 /// Application.
 pub struct App {
     pub sensor_count: usize,
-    delay: u64,
+    pub delay: u64,
     db: Option<Arc<Mutex<Surreal<Client>>>>,
     pub sensors: Arc<RwLock<SensorData>>,
     pub avgs: Arc<RwLock<Vec<SensorAverage>>>,
