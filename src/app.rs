@@ -1,7 +1,7 @@
 use crate::{
     Args,
     event::{AppEvent, Event, EventHandler},
-    queries::{SensorData, queries_run},
+    queries::{SensorAverage, SensorData, queries_run},
     sensors::sensors_run,
 };
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
@@ -25,11 +25,13 @@ pub struct App {
     delay: u64,
     db: Option<Arc<Mutex<Surreal<Client>>>>,
     pub sensors: Arc<RwLock<SensorData>>,
+    pub avgs: Arc<RwLock<Vec<SensorAverage>>>,
     pub running: Arc<AtomicBool>,
     pub selected_sensor: usize,
     pub force_outlier_on_sensor: Arc<AtomicIsize>,
     pub events: EventHandler,
     pub window_in_minutes: Arc<RwLock<u32>>,
+    pub query_delay: u64,
 }
 
 impl App {
@@ -38,6 +40,7 @@ impl App {
         Self {
             db: None,
             sensors: Arc::new(RwLock::new(HashMap::new())),
+            avgs: Arc::new(RwLock::new(Vec::new())),
             sensor_count: args.count,
             delay: args.delay,
             running: Arc::new(AtomicBool::new(true)),
@@ -45,6 +48,7 @@ impl App {
             force_outlier_on_sensor: Arc::new(AtomicIsize::new(-1)),
             events: EventHandler::new(),
             window_in_minutes: Arc::new(RwLock::new(1)),
+            query_delay: args.query_delay,
         }
     }
 
@@ -77,9 +81,17 @@ impl App {
         // spawn queries
         let running_clone_2 = self.running.clone();
         let sensors_clone = Arc::clone(&self.sensors);
+        let avgs_clone = Arc::clone(&self.avgs);
         let win_in_min = Arc::clone(&self.window_in_minutes);
         thread::spawn(move || {
-            queries_run(db_clone_2, running_clone_2, sensors_clone, win_in_min);
+            queries_run(
+                db_clone_2,
+                running_clone_2,
+                sensors_clone,
+                avgs_clone,
+                win_in_min,
+                self.query_delay,
+            );
         });
 
         while self.running.load(Ordering::Relaxed) {

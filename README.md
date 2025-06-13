@@ -47,3 +47,12 @@ select * sensor, avg from last_minute_avgs;
 ```
 
 <!-- end_slide -->
+
+Graph queries
+===
+
+```sql
+select *,->created_alert->alert from sensor;
+```
+
+<!-- end_slide -->

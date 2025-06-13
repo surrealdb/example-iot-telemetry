@@ -18,9 +18,13 @@ pub struct Args {
     #[clap(short, long, default_value = "4")]
     count: usize,
 
-    /// Delay between each print in milliseconds
+    /// Delay between each reading in milliseconds
     #[clap(short, long, default_value = "1000")]
     delay: u64,
+
+    /// Delay between each query in milliseconds
+    #[clap(short, long, default_value = "500")]
+    query_delay: u64,
 }
 
 #[tokio::main]

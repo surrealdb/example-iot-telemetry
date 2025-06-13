@@ -1,7 +1,7 @@
 use ratatui::{
     buffer::Buffer,
     layout::{Alignment, Constraint, Layout, Rect},
-    style::{Color, Style, Stylize},
+    style::{Style, Stylize},
     widgets::{Block, BorderType, Paragraph, Sparkline, Widget},
 };
 
@@ -65,15 +65,11 @@ impl Widget for &App {
         }
 
         // -- Right container
-        let block = Block::bordered()
-            .title("block")
-            .title_alignment(Alignment::Center)
-            .border_type(BorderType::Rounded);
+        let rcol = Layout::vertical([Constraint::Fill(1); 2]).split(main[1]);
+        let block = Block::bordered().border_type(BorderType::Rounded);
 
         let text = format!(
-            "This is a tui template.\n\
-                Press `Esc`, `Ctrl-C` or `q` to stop running.\n\
-                Press left and right to increment and decrement the counter respectively.\n\
+            "Press `Esc`, `Ctrl-C` or `q` to stop running.\n\
                 Data window in minutes: {}\n\
                 Selected: {}\n\
                 Sensor count: {}",
@@ -82,12 +78,19 @@ impl Widget for &App {
             self.sensor_count
         );
 
-        let paragraph = Paragraph::new(text)
-            .block(block)
-            .fg(Color::Cyan)
-            .bg(Color::Black)
-            .centered();
+        let mut text2 = String::new();
+        if let Ok(avgs) = self.avgs.read() {
+            for avg in avgs.iter() {
+                text2 += &format!("{}: {}\n", avg.sensor.key(), avg.avg);
+            }
+        }
+        Paragraph::new(text2)
+            .block(Block::bordered().title(format!(
+                "Last minute averages from pre-computed table ({})ms",
+                self.query_delay
+            )))
+            .render(rcol[0], buf);
 
-        paragraph.render(main[1], buf);
+        Paragraph::new(text).block(block).render(rcol[1], buf);
     }
 }
