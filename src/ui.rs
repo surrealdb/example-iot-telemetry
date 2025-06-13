@@ -81,12 +81,16 @@ impl Widget for &App {
         let mut text2 = String::new();
         if let Ok(avgs) = self.avgs.read() {
             for avg in avgs.iter() {
-                text2 += &format!("{}: {}\n", avg.sensor.key(), avg.avg);
+                text2 += &format!(
+                    "{}: {:>8}\n",
+                    avg.sensor.key(),
+                    format!("{:.2}%", avg.avg * 100.)
+                );
             }
         }
         Paragraph::new(text2)
             .block(Block::bordered().title(format!(
-                "Last minute averages from pre-computed table ({})ms",
+                "Last minute averages (query every {}ms)",
                 self.query_delay
             )))
             .render(rcol[0], buf);

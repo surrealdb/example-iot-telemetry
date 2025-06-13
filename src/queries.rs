@@ -29,7 +29,14 @@ pub struct SensorAverage {
 pub type SensorData = HashMap<String, SensorWindow>;
 
 async fn query_averages(db: &Arc<Mutex<Surreal<Client>>>) -> surrealdb::Result<Vec<SensorAverage>> {
-    let q = "select sensor, type::float(avg) as avg from last_minute_avgs";
+    let q = r#"
+        select
+            sensor,
+            math::mean(value) as avg,
+            last_min_avg
+        from reading where id[0] > time::now() - 1m
+        group by sensor
+        "#;
     let db = db.lock().await;
     let mut res = db.query(q).await?;
     Ok(res.take::<Vec<SensorAverage>>(0).unwrap())
@@ -40,11 +47,13 @@ async fn query_data(
     window_in_minutes: &Arc<RwLock<u32>>,
 ) -> surrealdb::Result<Vec<SensorWindow>> {
     let q = format!(
-        r#"select
-record::id(sensor) as sensor,
-array::flatten(value) as values
-from reading where id[0] > time::now() - {}m
-group by sensor"#,
+        r#"
+        select
+            record::id(sensor) as sensor,
+            array::flatten(value) as values
+        from reading where id[0] > time::now() - {}m
+        group by sensor
+        "#,
         window_in_minutes.read().unwrap()
     );
     let db = db.lock().await;
