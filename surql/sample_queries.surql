@@ -8,12 +8,12 @@ RETURN math::percentile($temp, 30) - 1.4 * math::interquartile($temp);
 RETURN math::percentile($temp, 70) + 1.4 * math::interquartile($temp);
 
 
-select
+SELECT
     sensor,
-    math::mean(value) as avg,
+    math::mean(value) AS avg,
     last_min_avg
 -- doesn't work:
 --   from reading:[time::now() - 30m]..=[time::now()]
 -- this does:
-from reading where id[0] > time::now() - 1m
-group by sensor;
+FROM reading WHERE id[0] > time::now() - 1m
+GROUP BY sensor;
