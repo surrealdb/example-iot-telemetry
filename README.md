@@ -8,13 +8,13 @@
 
 Start the DB with:
 
-```sh
+```bash
 surreal start -u root -p root
 ```
 
 Import the schema:
 
-```sh
+```bash
 surreal import -e http://localhost:8000 -u root -p root \
     --namespace telemetry-simulator --database demo \
     surql/migrations/0.schema.surql
@@ -22,7 +22,7 @@ surreal import -e http://localhost:8000 -u root -p root \
 
 Add initial data:
 
-```sh
+```bash
 surreal import -e http://localhost:8000 -u root -p root \
     --namespace telemetry-simulator --database demo \
     surql/migrations/1.initial_data.surql
@@ -30,7 +30,7 @@ surreal import -e http://localhost:8000 -u root -p root \
 
 Create the event trigger:
 
-```sh
+```bash
 surreal import -e http://localhost:8000 -u root -p root \
     --namespace telemetry-simulator --database demo \
     surql/migrations/2.sensor_anomaly_alert.surql
@@ -38,7 +38,7 @@ surreal import -e http://localhost:8000 -u root -p root \
 
 Run the simulated devices with:
 
-```sh
+```bash
 just sim
 ```
 
@@ -60,7 +60,7 @@ SELECT *, ->created_alert->alert FROM sensor;
 select *, ->located_at->site from sensor;
 ```
 
-![graph query result](docs/sensors-query.png)
+![graph query result](docs/sensors-graph.png)
 
 ```sql
 -- Alerts per site
