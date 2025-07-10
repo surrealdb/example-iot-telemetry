@@ -27,7 +27,7 @@ THEN {
 
     IF $message {
         LET $alert = CREATE alert CONTENT {
-            outlier: $after.id,
+            outlier: { reading: $after.id, value: $after.value, sensor: $after.sensor },
             message: $message
         } RETURN id;
 

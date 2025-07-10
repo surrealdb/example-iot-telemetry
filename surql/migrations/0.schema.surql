@@ -2,7 +2,12 @@ USE NS `telemetry-simulator` DB demo;
 
 -- Alert
 DEFINE TABLE alert SCHEMAFULL;
-DEFINE FIELD outlier ON TABLE alert TYPE record<reading>;
+
+DEFINE FIELD outlier ON TABLE alert TYPE object;
+DEFINE FIELD outlier.reading ON TABLE alert TYPE record<reading>;
+DEFINE FIELD outlier.value ON TABLE alert TYPE float;
+DEFINE FIELD outlier.sensor ON TABLE alert TYPE record<sensor>;
+
 DEFINE FIELD message ON TABLE alert TYPE string;
 
 -- Reading
