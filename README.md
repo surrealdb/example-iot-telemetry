@@ -1,92 +1,76 @@
----
-title: Telemetry Demo
-sub_title: SurrealDB, time series, event triggers, graph
-author: Martin Schaer <martin.schaer@surrealdb.com>
-theme:
-  name: surreal
----
+# Telemetry IoT Demo
 
-Solution
-===
+> SurrealDB, time series, event triggers, graph
 
-![image:w:100%](docs/solution.png)
+![solution diagram](docs/solution.png)
 
-<!-- end_slide -->
+## Running
 
-DB schema
-===
+Start the DB with:
 
-![image:w:100%](docs/db-diagram.png)
-
-<!-- end_slide -->
-
-Event trigger
-===
-
-```file +line_numbers
-path: surql/sensor_anomaly_alert.surql
-language: sql
+```sh
+surreal start -u root -p root
 ```
 
-<!-- end_slide -->
+Import the schema:
 
-Live Alerts
-===
-<!-- column_layout: [1, 1] -->
-<!-- column: 0 -->
+```sh
+surreal import -e http://localhost:8000 -u root -p root \
+    --namespace telemetry-simulator --database demo \
+    surql/migrations/0.schema.surql
+```
+
+Add initial data:
+
+```sh
+surreal import -e http://localhost:8000 -u root -p root \
+    --namespace telemetry-simulator --database demo \
+    surql/migrations/1.initial_data.surql
+```
+
+Create the event trigger:
+
+```sh
+surreal import -e http://localhost:8000 -u root -p root \
+    --namespace telemetry-simulator --database demo \
+    surql/migrations/2.sensor_anomaly_alert.surql
+```
+
+Run the simulated devices with:
+
+```sh
+just sim
+```
+
+Run a live select to see alerts being raise in real time:
 
 ```sql
 live select * from alert;
 ```
-<!-- column: 1 -->
-![image:w:100%](docs/live-query.png)
 
-<!-- end_slide -->
+![live query result](docs/live-query.png)
 
-Graph queries
-===
+Graph queries:
 
+```sql
+-- Alerts per sensor
+SELECT *, ->created_alert->alert FROM sensor;
 
-```file +line_numbers
-path: surql/graph.surql
-language: sql
+-- Sensor locations
+select *, ->located_at->site from sensor;
 ```
 
-<!-- column_layout: [1, 1] -->
-<!-- column: 0 -->
+![graph query result](docs/sensors-query.png)
 
-## Alerts per site
-```yaml
-[
-	{
-		alerts: [
-			{
-				message: 'High',
-				outlier: reading:[
-					d'2025-06-24T14:47:30.329Z'
-				]
-			},
-			...
-		],
-		id: site:⟨site-1⟩
-	},
-	{
-		alerts: [
-			{
-				message: 'High',
-				outlier: reading:[
-					d'2025-06-24T15:31:42.449Z'
-				]
-			},
-			...
-		],
-		id: site:⟨site-2⟩
-	}
-]
+```sql
+-- Alerts per site
+SELECT
+    id,
+    <-located_at<-sensor->created_alert->alert.{message, outlier} AS alerts
+FROM site
+FETCH alerts;
 ```
 
-<!-- column: 1 -->
-## Alerts per sensor
-![image:w:100%](docs/graph.png)
+## DB schema
 
-<!-- end_slide -->
+![db schema](docs/db-diagram.png)
